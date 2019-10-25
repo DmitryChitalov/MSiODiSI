@@ -4,10 +4,12 @@ from pprint import pprint
 import time
 import re
 from pymongo import MongoClient
+import random
 
+#headers = {#'accept':'*/*',
+#            'User-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
-headers = {#'accept':'*/*',
-            'User-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+headers = {'User-agent': 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2224.3 Safari/537.36'}
 
 def hh(main_link, search_str, n_str):
     #n_str - кол-во просматриваемых страниц
@@ -25,7 +27,7 @@ def hh(main_link, search_str, n_str):
                 main_info = req.findChild()
                 job_name = main_info.getText()
                 job_link = main_info['href']
-                salary = job.find('div',{'class':'vacancy-serp-item__salary'})
+                salary = job.find('div',{'class':'vacancy-serp-item__compensation'})
                 if not salary:
                     salary_min=None
                     salary_max=None
@@ -45,20 +47,21 @@ def hh(main_link, search_str, n_str):
                 job_data['link'] = job_link
                 job_data['site'] = main_link
                 jobs.append(job_data)
-        time.sleep(1)
+        time.sleep(random.randint(1,10))
         next_btn_block=parsed_html.find('a',{'class':'bloko-button HH-Pager-Controls-Next HH-Pager-Control'})
         next_btn_link=next_btn_block['href']
         html = requests.get(main_link+next_btn_link,headers=headers).text
         parsed_html = bs(html,'lxml')
 
-    pprint(jobs)
+    #pprint(jobs)
     jobs_db.insert_many(jobs)
+    return jobs
 
 
 
 def superjob(main_link, search_str, n_str):
     #n_str - кол-во просматриваемых страниц
-    base_url=main_link+'/vacancy/search/?keywords='+search_str+'geo%5Bc%5D%5B0%5D=1'
+    base_url=main_link+'/vacancy/search/?keywords='+search_str+'&geo%5Bc%5D%5B0%5D=1'
     jobs = []
     session = requests.Session()
     for i in range(n_str):
@@ -104,20 +107,37 @@ def superjob(main_link, search_str, n_str):
                 })
             base_url = main_link + \
                        soup.find('a', {'class': 'icMQ_ _1_Cht _3ze9n f-test-button-dalshe f-test-link-dalshe'})['href']
-            time.sleep(1)
+            time.sleep(random.randint(1,10))
         else:
             print('Ошибка')
 
-    pprint(jobs)
+    #pprint(jobs)
     jobs_db.insert_many(jobs)
+    return jobs
 
+def insert_data_to_db(search_str, n_str):
+    jobs_db.delete_many({})
+    jobs_db.insert_many(hh('https://ufa.hh.ru', search_str, n_str))
+    jobs_db.insert_many(superjob('https://www.superjob.ru', search_str, n_str))
+
+def find_salaries_greater_than(salary_greater_than):
+    return jobs_db.find({'salary_greater_than': {'$gte': salary_greater_than}})
 
 client = MongoClient('localhost',27017)
 db = client['jobs_db']
 jobs_db = db.jobs_db
+search_str='Python'
+salary_greater_than=65000
+n_str=2
 
-hh('https://ufa.hh.ru','Python',5)
-superjob('https://www.superjob.ru','Python',5)
+#hh('https://ufa.hh.ru',search_str,n_str)
+#superjob('https://www.superjob.ru',search_str,n_str)
+
+insert_data_to_db(search_str, n_str)
+records_db=find_salaries_greater_than(salary_greater_than)
+
+for rec in records_db:
+    pprint(rec)
 
 count = jobs_db.count()
-print(count)
+print('Кол-во записей в БД:', count)
