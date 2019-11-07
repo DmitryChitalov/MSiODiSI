@@ -38,7 +38,7 @@ class DataBasePipeline(object):
         try:
             item['mileage'] = int(re.sub(r'[^0-9]', '', item['mileage']))
         except:
-            item['year'] = None
+            item['mileage'] = None
         item['model'] = item['model'].strip()
         item['transmission'] = item['transmission'].strip()
         item['color'] = item['color'].strip()
