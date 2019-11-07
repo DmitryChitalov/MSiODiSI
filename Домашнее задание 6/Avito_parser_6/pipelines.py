@@ -34,11 +34,11 @@ class DataBasePipeline(object):
         try:
             item['year'] = int(re.sub(r'[^0-9]', '', item['year']))
         except:
-            item['year'] = 'неизвестно'
+            item['year'] = None
         try:
             item['mileage'] = int(re.sub(r'[^0-9]', '', item['mileage']))
         except:
-            item['mileage'] = 'неизвестно'
+            item['year'] = None
         item['model'] = item['model'].strip()
         item['transmission'] = item['transmission'].strip()
         item['color'] = item['color'].strip()
